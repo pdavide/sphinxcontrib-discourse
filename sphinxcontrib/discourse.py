@@ -76,7 +76,7 @@ def event_html_page_context(app, pagename, templatename, context, doctree):
     :param docutils.nodes.document doctree: Tree of docutils nodes.
     """
 
-    reURL = re.compile('^https?://[a-zA-Z0-9\.]+/$')
+    reURL = re.compile('^https?://\S+/$')
     current_builder = app.builder.name
     if current_builder == 'html' or current_builder == 'readthedocs':
         if doctree and doctree.traverse(DiscourseNode):
