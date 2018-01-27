@@ -20,6 +20,17 @@ class DiscourseError(SphinxError):
 
 class DiscourseNode(nodes.General, nodes.Element):
     """Discourse <div /> node for Sphinx/docutils."""
+    
+    def __init__(self, topic_identifier):
+        """Store directive options during instantiation.
+        :param str disqus_shortname: Required Disqus forum name identifying the website.
+        :param str disqus_identifier: Unique identifier for each page where Disqus is present.
+        """
+        super(DiscourseNode, self).__init__()
+        self.topic_identifier = topic_identifier
+    
+    def get_topic_identifier(self):
+        return self.topic_identifier;
 
     @staticmethod
     def visit(self, node):
@@ -56,11 +67,10 @@ class DiscourseDirective(Directive):
 
         if self.state.document.traverse(DiscourseNode):
             raise DiscourseError('::discourse: directive found more than once in the same file.')
-        env = self.state.document.settings.env
-        env.discourse_topic_identifier = self.get_topic_identifier()
+        discourse_topic_identifier = self.get_topic_identifier()
         current_builder = env.app.builder.name
         if current_builder == 'html' or current_builder == 'readthedocs':
-            return [DiscourseNode()]
+            return [DiscourseNode(discourse_topic_identifier)]
         return []
 
 
@@ -84,15 +94,16 @@ def event_html_page_context(app, pagename, templatename, context, doctree):
                 raise DiscourseError('::discourse: directive found, but discourse_url is not set in conf.py')
             if not reURL.match(app.config.discourse_url):
                 raise DiscourseError('::discourse: directive found, but discourse_url is not set properly in conf.py (must be a valid URL starting with http:// or https:// and ending with trailing slash)')
-            context['body'] += """<script type='text/javascript'>
-                                    DiscourseEmbed = { discourseUrl: '%s',
-                                    topicId: '%s' };
-                                    (function() {
-                                        var d = document.createElement('script'); d.type = 'text/javascript'; d.async = true;
-                                        d.src = DiscourseEmbed.discourseUrl + 'javascripts/embed.js';
-                                        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(d);
-                                    })();
-                               </script>""" % (app.config.discourse_url, app.env.discourse_topic_identifier)
+            for discourse_node in doctree.traverse(DiscourseNode):
+                context['body'] += """<script type='text/javascript'>
+                                        DiscourseEmbed = { discourseUrl: '%s',
+                                        topicId: '%s' };
+                                        (function() {
+                                            var d = document.createElement('script'); d.type = 'text/javascript'; d.async = true;
+                                            d.src = DiscourseEmbed.discourseUrl + 'javascripts/embed.js';
+                                            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(d);
+                                        })();
+                                   </script>""" % (app.config.discourse_url, discourse_node.get_topic_identifier())
 
 
 def setup(app):
