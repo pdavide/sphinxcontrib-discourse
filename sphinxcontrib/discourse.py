@@ -68,6 +68,7 @@ class DiscourseDirective(Directive):
         if self.state.document.traverse(DiscourseNode):
             raise DiscourseError('::discourse: directive found more than once in the same file.')
         discourse_topic_identifier = self.get_topic_identifier()
+        env = self.state.document.settings.env
         current_builder = env.app.builder.name
         if current_builder == 'html' or current_builder == 'readthedocs':
             return [DiscourseNode(discourse_topic_identifier)]
